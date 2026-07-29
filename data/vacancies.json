@@ -1,0 +1,14 @@
+[
+  { "branch": "Правительство", "title": "Губернатор штата", "status": "closed", "link": "https://forum.arizona-swag.com/threads/75869/" },
+  { "branch": "Прокуратура", "title": "Генеральный прокурор", "status": "closed", "link": "https://forum.arizona-swag.com/threads/75916/" },
+  { "branch": "Судейская коллегия", "title": "Верховный судья", "status": "closed", "link": "https://forum.arizona-swag.com/threads/75760/" },
+  { "branch": "Судейская коллегия", "title": "Окружной судья", "status": "open", "link": "https://forum.arizona-swag.com/threads/75758/" },
+  { "branch": "Судейская коллегия", "title": "Апелляционный судья", "status": "open", "link": "https://forum.arizona-swag.com/threads/75759/" },
+  { "branch": "Правительство", "title": "Шериф РКШД", "status": "closed", "link": "https://forum.arizona-swag.com/threads/76199/" },
+  { "branch": "Правительство", "title": "Шериф СФПД", "status": "open", "link": "https://forum.arizona-swag.com/threads/76199/" },
+  { "branch": "Правительство", "title": "Директор FBI", "status": "closed", "link": "https://forum.arizona-swag.com/threads/75755/" },
+  { "branch": "Правительство", "title": "Куратор SWAT", "status": "closed", "link": "https://forum.arizona-swag.com/threads/75826/" },
+  { "branch": "Правительство", "title": "Шеф ЛСПД", "status": "closed", "link": "https://forum.arizona-swag.com/threads/76063/" },
+  { "branch": "Правительство", "title": "Генерал Армии Лос-Сантос", "status": "closed", "link": "https://forum.arizona-swag.com/threads/73742/" },
+  { "branch": "Правительство", "title": "Главный врач LSMC", "status": "closed", "link": "https://forum.arizona-swag.com/threads/75032/" }
+]
