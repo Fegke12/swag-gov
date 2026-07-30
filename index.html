@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Правительство штата SWAG</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'IBM Plex Sans',system-ui,sans-serif}
+  ::selection{background:#c9a227;color:#0f2444}
+  ::-webkit-scrollbar{width:10px}
+  ::-webkit-scrollbar-thumb{background:#c9c3b4;border-radius:6px}
+  a{color:inherit;text-decoration:none}
+  button{font-family:inherit}
+  .container{max-width:1280px;margin:0 auto;padding:0 32px;width:100%}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+const THEMES = {
+  dark: { bg:'#0f1c33', headerBg:'#0a1830', text:'#f2f0ea', muted:'#aab4c4', cardBg:'#16233d', border:'#26365a', navyChip:'#1a2a4a', gold:'#e6c85a', toggleLabel:'Тёмная тема' },
+  light: { bg:'#ffffff', headerBg:'#ffffff', text:'#1a1f29', muted:'#5b6472', cardBg:'#f7f6f2', border:'#e4e0d4', navyChip:'#0f2444', gold:'#a9791f', toggleLabel:'Светлая тема' }
+};
+
+const STRUCTURE = {
+  gov: [{ title:'Исполнительная власть', people:[{ name:'Вакантно', role:'Губернатор штата', initials:'—', vacant:true }] }],
+  prosecutor: [{ title:'Руководство прокуратуры', people:[
+    { name:'Arseniy Lipovich', role:'Генеральный прокурор', initials:'AL' },
+    { name:'Feofil Feofilov', role:'Заместитель ген. прокурора', initials:'FF' }
+  ]}],
+  judicial: [{ title:'Судейская коллегия', people:[
+    { name:'Sasha Fiofilov', role:'Верховный судья', initials:'SF' },
+    { name:'Вакантно', role:'Окружной судья', initials:'—', vacant:true },
+    { name:'Вакантно', role:'Апелляционный судья', initials:'—', vacant:true }
+  ]}]
+};
+
+const DOCUMENTS = [
+  { title:'Конституция штата SWAG', category:'Конституция', id:'constitution', file:'data/constitution.txt' },
+  { title:'Уголовный кодекс', category:'Кодексы', id:'criminal', file:'data/code-criminal.txt' },
+  { title:'Дорожный кодекс штата', category:'Кодексы', id:'road', file:'data/code-road.txt' },
+  { title:'Процессуальный кодекс', category:'Кодексы', id:'procedural', file:'data/code-procedural.txt' },
+  { title:'Судебно-процессуальный кодекс штата', category:'Кодексы', id:'court-procedure', file:'data/code-court-procedure.txt' },
+  { title:'Федеральный закон «О статусе неприкосновенности должностных лиц»', category:'Федеральные законы', id:'immunity', file:'data/law-immunity.txt' },
+  { title:'Федеральный закон «О Прокуратуре штата SWAG»', category:'Федеральные законы', id:'prosecutor-law', file:'data/law-prosecutor.txt' },
+  { title:'Федеральный закон «О Федеральном бюро расследований»', category:'Федеральные законы', id:'fbi', file:'data/law-fbi.txt' },
+  { title:'Федеральный закон «О порядке посещений гос. учреждений на территории Штата SWAG»', category:'Федеральные законы', id:'visiting', file:'data/law-visiting.txt' },
+  { title:'Федеральный закон «О системе исполнительных органов государственной власти штата SWAG»', category:'Федеральные законы', id:'exec-system', file:'data/law-exec-system.txt' },
+  { title:'Федеральный закон «О структуре исполнительных органов власти штата SWAG»', category:'Федеральные законы', id:'exec-structure', file:'data/law-exec-structure.txt' },
+  { title:'Федеральный закон «Об адвокатуре и адвокатской деятельности»', category:'Федеральные законы', id:'advocacy', file:'data/law-advocacy.txt' },
+  { title:'Федеральное постановление', category:'Постановления', id:'federal-regulation', file:'data/law-federal-regulation.txt' }
+];
+
+const NAV = [['home','Главная'],['structure','Структура'],['documents','Документы'],['news','Новости'],['vacancies','Вакансии'],['contacts','Контакты']];
+const BRANCH_TABS = [['gov','Правительство'],['prosecutor','Прокуратура'],['judicial','Судейская коллегия']];
+const DOC_FILTERS = [['all','Все'],['Конституция','Конституция'],['Кодексы','Кодексы'],['Федеральные законы','Фед. законы'],['Постановления','Постановления']];
+
+const state = {
+  tab:'home', branch:'gov', docSearch:'', docFilter:'all', themeMode:'dark',
+  vacanciesData:null, vacanciesError:false, openDocId:null, openDocText:'', openDocTitle:'',
+  contactSent:false, contactSending:false, contactError:''
+};
+
+function setTab(tab, branch){ state.tab = tab; if (branch) state.branch = branch; window.scrollTo(0,0); render(); }
+function toggleTheme(){ state.themeMode = state.themeMode === 'dark' ? 'light' : 'dark'; render(); }
+function theme(){ return THEMES[state.themeMode]; }
+
+function openDoc(doc){
+  if (doc.file){
+    state.openDocId = doc.id; state.openDocTitle = doc.title; state.openDocText = 'Загрузка…'; render();
+    fetch(doc.file).then(r=>r.text()).then(t=>{ state.openDocText = t; render(); })
+      .catch(()=>{ state.openDocText = 'Не удалось загрузить документ.'; render(); });
+  } else if (doc.link){ window.open(doc.link,'_blank'); }
+}
+function closeDoc(){ state.openDocId = null; render(); }
+
+async function loadVacancies(){
+  try {
+    const r = await fetch('data/vacancies.json');
+    if (!r.ok) throw new Error();
+    state.vacanciesData = await r.json();
+  } catch(e){
+    state.vacanciesData = [
+      { branch:'Правительство', title:'Специалист министерства финансов', status:'open' },
+      { branch:'Прокуратура', title:'Помощник прокурора', status:'open' },
+      { branch:'Судейская коллегия', title:'Секретарь судебного заседания', status:'closed' }
+    ];
+    state.vacanciesError = true;
+  }
+  render();
+}
+
+async function submitContact(){
+  const t = theme();
+  const name = document.getElementById('f-name').value.trim();
+  const contact = document.getElementById('f-contact').value.trim();
+  const subject = document.getElementById('f-subject').value.trim();
+  const message = document.getElementById('f-message').value.trim();
+  const website = document.getElementById('f-website').value;
+  const dept = document.getElementById('f-dept').value;
+  if (website){ state.contactSent = true; render(); return; }
+  if (!name || !contact || !message){ state.contactError = 'Заполните имя, контакт и сообщение.'; render(); return; }
+  state.contactSending = true; state.contactError = ''; render();
+  try {
+    const res = await fetch('https://swag-gov-proxy.fegke15.workers.dev/submit', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ name, contact, message: `[${dept}] ${subject ? subject+': ' : ''}${message}`, website })
+    });
+    if (!res.ok) throw new Error();
+    state.contactSent = true; state.contactSending = false;
+  } catch(e){
+    state.contactSending = false; state.contactError = 'Не удалось отправить. Попробуйте позже.';
+  }
+  render();
+}
+
+function h(tag, attrs, ...children){
+  attrs = attrs || {};
+  const attrStr = Object.entries(attrs).map(([k,v])=> v===undefined||v===null||v===false ? '' : ` ${k}="${v}"`).join('');
+  return `<${tag}${attrStr}>${children.join('')}</${tag}>`;
+}
+function esc(s){ return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function headerHtml(){
+  const t = theme();
+  return `
+  <div style="background:${t.headerBg};border-bottom:1px solid ${t.border};padding:8px 24px;display:flex;align-items:center;justify-content:center;position:relative;gap:18px;font-size:11px;letter-spacing:.4px;color:${t.muted}">
+    <span style="text-align:center">LOS SANTOS · SAN FIERRO · LAS VENTURAS</span>
+    <button onclick="toggleTheme()" style="position:absolute;right:24px;top:50%;transform:translateY(-50%);display:flex;align-items:center;gap:7px;background:none;border:1px solid ${t.border};border-radius:20px;padding:4px 10px 4px 4px;cursor:pointer;color:${t.muted};font-size:10.5px;font-weight:600">
+      <span style="width:16px;height:16px;border-radius:50%;background:${t.gold};display:inline-block"></span>
+      ${t.toggleLabel}
+    </button>
+  </div>
+  <header style="background:${t.headerBg};position:sticky;top:0;z-index:20">
+    <div class="container" style="padding-top:22px;padding-bottom:16px;display:flex;flex-direction:column;align-items:center;gap:10px">
+      <div style="display:flex;flex-direction:column;line-height:1.15;text-align:center">
+        <span style="font-family:'Source Serif 4',serif;font-weight:700;font-size:20px;letter-spacing:.4px;color:${t.text}">ШТАТ SWAG</span>
+        <span style="font-size:10.5px;color:${t.gold};letter-spacing:1px;text-transform:uppercase">Правительство · Прокуратура · Судейская коллегия</span>
+      </div>
+    </div>
+    <nav style="border-top:1px solid ${t.border};border-bottom:1px solid ${t.border}">
+      <div class="container" style="display:flex;justify-content:center;gap:6px;flex-wrap:wrap">
+        ${NAV.map(([key,label])=>{
+          const active = state.tab===key;
+          return `<button onclick="setTab('${key}')" style="background:none;border:none;cursor:pointer;padding:14px 16px;font:600 11.5px 'IBM Plex Sans',sans-serif;letter-spacing:1px;text-transform:uppercase;color:${active?t.gold:t.muted};border-bottom:2px solid ${active?t.gold:'transparent'}">${label}</button>`;
+        }).join('')}
+      </div>
+    </nav>
+  </header>`;
+}
+
+function homeHtml(){
+  const t = theme();
+  return `
+  <section style="position:relative;background:#0a1830;overflow:hidden">
+    <img src="assets/flag-field.png" alt="Флаг штата Swag" style="width:100%;height:640px;object-fit:cover;object-position:center;display:block;opacity:0.9"/>
+    <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,24,48,.15) 0%,rgba(10,24,48,.35) 60%,rgba(10,24,48,.85) 100%)"></div>
+    <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:40px;text-align:center">
+      <img src="assets/seal.png" alt="Герб штата Swag" style="width:190px;height:190px;object-fit:contain;filter:drop-shadow(0 12px 30px rgba(0,0,0,.45))"/>
+      <h1 style="font-family:'Source Serif 4',serif;font-weight:700;font-size:46px;color:#f6f4ef;margin:0;max-width:860px;line-height:1.15;text-shadow:0 2px 12px rgba(0,0,0,.4)">Правительство штата Swag</h1>
+      <p style="font-size:16.5px;color:#e4e8f0;max-width:640px;margin:0;line-height:1.6">Служим закону, порядку и жителям штата — от Лос-Сантоса до Лас-Вентураса</p>
+      <div style="font-family:'Source Serif 4',serif;font-style:italic;color:#e6c85a;font-size:14px;letter-spacing:1.5px;margin-top:2px">JUSTITIA · LIBERTAS · UNITAS</div>
+    </div>
+  </section>
+
+  <section id="history-section" class="container" style="padding-top:64px;padding-bottom:8px;display:grid;grid-template-columns:1fr 1.3fr;gap:48px;align-items:center">
+    <img src="assets/seal.png" alt="" style="width:100%;max-width:260px;object-fit:contain;justify-self:center;opacity:.92"/>
+    <div>
+      <h2 style="font-family:'Source Serif 4',serif;font-size:26px;margin:0 0 14px;color:${t.text}">История штата</h2>
+      <p style="font-size:14px;color:${t.muted};line-height:1.7;margin:0 0 12px">Штат SWAG — административно-территориальная единица в составе Соединённых Штатов Америки со столицей в городе Лос-Сантос, объединяющая Лос-Сантос, Сан-Фиерро, Лас-Вентурас и округа Ред-Каунти, Бон-Каунти, Флинт-Каунти, Тьерра-Робада и Уетстоун.</p>
+      <p style="font-size:14px;color:${t.muted};line-height:1.7;margin:0 0 12px">Первые поселения на этих землях возникли ещё в конце XIX века вокруг портов Лос-Сантоса и Сан-Фиерро, но статус самостоятельного штата территория обрела значительно позже, после десятилетий споров между конкурирующими муниципалитетами и окружными властями. Объединение округов в единую административную единицу было продиктовано необходимостью общей инфраструктуры — дорог, порта и растущей торговли, — а также стремлением навести порядок после череды локальных конфликтов между кланами и торговыми домами Ред-Каунти и Бон-Каунти.</p>
+      <p style="font-size:14px;color:${t.muted};line-height:1.7;margin:0 0 12px">Современная система государственной власти сложилась не сразу: первые годы штатом управляли временные советы без чёткого разделения полномочий, что порождало злоупотребления и нестабильность. Только после проведения конституционной реформы была закреплена нынешняя модель — три независимые ветви власти: исполнительная в лице Губернатора, законодательная и судебная, дополненные системой прокурорского надзора. Это позволило выстроить прозрачные механизмы назначения на должности, отчётности и защиты прав жителей.</p>
+      <p style="font-size:14px;color:${t.muted};line-height:1.7;margin:0">Сегодня Лос-Сантос остаётся политическим и экономическим центром штата, где сосредоточены резиденция Губернатора, здания Прокуратуры и Верховного суда. Несмотря на смены руководства и периоды турбулентности, институты штата продолжают развиваться, опираясь на верховенство закона и преемственность государственных традиций.</p>
+    </div>
+  </section>
+
+  <section class="container" style="padding-top:44px;padding-bottom:80px;display:grid;grid-template-columns:2fr 1fr;gap:32px">
+    <div>
+      <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:18px">
+        <h2 style="font-family:'Source Serif 4',serif;font-size:22px;margin:0;color:${t.text}">Последние новости и указы</h2>
+        <button onclick="setTab('news')" style="background:none;border:none;cursor:pointer;font-size:12px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:${t.gold}">Все новости →</button>
+      </div>
+      <div style="border-top:1px solid ${t.border};padding:36px 0;text-align:center;font-size:13.5px;color:${t.muted};font-style:italic">Тут было перекати-поле… новости скоро появятся.</div>
+    </div>
+    <div style="background:${t.navyChip};border-radius:2px;padding:26px 24px;color:#f6f4ef;display:flex;flex-direction:column;gap:14px;align-self:start">
+      <h3 style="font-family:'Source Serif 4',serif;font-size:17px;margin:0;color:#e6c85a">Подать обращение</h3>
+      <p style="font-size:13px;color:#cdd6e5;line-height:1.6;margin:0">Жалобы, заявления и обращения граждан рассматриваются в течение 5 рабочих дней.</p>
+      <button onclick="setTab('contacts')" style="background:#c9a227;color:#0f2444;border:none;padding:10px 16px;font-weight:700;font-size:13px;cursor:pointer;border-radius:2px;align-self:flex-start">Перейти к форме</button>
+    </div>
+  </section>`;
+}
+
+function personCardHtml(p, t){
+  return `
+  <div style="background:${t.cardBg};border:1px solid ${t.border};border-radius:2px;padding:18px;display:flex;gap:14px;align-items:center">
+    <div style="width:46px;height:46px;border-radius:50%;background:${t.navyChip};flex:none;display:flex;align-items:center;justify-content:center;font-family:'Source Serif 4',serif;font-weight:700;color:${t.gold};font-size:16px">${esc(p.initials)}</div>
+    <div style="min-width:0">
+      <div style="font-size:14px;font-weight:600;color:${t.text};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(p.name)}</div>
+      <div style="font-size:12px;color:${t.muted};margin-top:2px">${esc(p.role)}</div>
+    </div>
+  </div>`;
+}
+
+function featuredCardHtml(fp, t){
+  return `
+  <div style="position:relative;background:${t.navyChip};border-radius:2px;overflow:hidden;padding:48px 40px;display:flex;align-items:center;gap:32px;flex-wrap:wrap;flex:1;min-width:340px">
+    <div style="position:absolute;inset:0;opacity:.12;background:radial-gradient(circle at 15% 20%,${t.gold},transparent 60%)"></div>
+    <img src="${fp.sealImg}" alt="" style="position:relative;width:110px;height:110px;object-fit:contain;flex:none;filter:drop-shadow(0 8px 20px rgba(0,0,0,.35))"/>
+    <div style="position:relative;display:flex;flex-direction:column;gap:8px">
+      <span style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${t.gold}">${esc(fp.eyebrow)}</span>
+      <h3 style="font-family:'Source Serif 4',serif;font-weight:700;font-size:28px;margin:0;color:#f6f4ef">${esc(fp.name)}</h3>
+      <span style="font-size:14px;color:#cdd6e5">${esc(fp.role)}</span>
+      <span style="font-size:12px;color:#e6c85a;font-style:italic">${esc(fp.note||'')}</span>
+      <div style="height:1px;background:rgba(230,200,90,.35);margin:12px 0"></div>
+      <span style="font-family:'Source Serif 4',serif;font-style:italic;color:#e6c85a;font-size:12.5px;letter-spacing:.6px">Justitia · Libertas · Unitas</span>
+    </div>
+  </div>`;
+}
+
+function structureHtml(){
+  const t = theme();
+  const branch = state.branch;
+  let body = '';
+  if (branch === 'gov' || branch === 'prosecutor'){
+    const featured = branch === 'gov'
+      ? [{ ...STRUCTURE.gov[0].people[0], eyebrow:'Глава исполнительной власти', sealImg:'assets/seal-governor.png' }]
+      : STRUCTURE.prosecutor[0].people.map((p,i)=>({ ...p, eyebrow: i===0?'Глава прокуратуры':'Заместитель', sealImg: i===0?'assets/seal-ag.png':'assets/seal-deputy-ag.png' }));
+    body = `<div style="display:flex;gap:24px;flex-wrap:wrap">${featured.map(fp=>featuredCardHtml({...fp, note: fp.vacant?'Идёт набор — см. вкладку «Вакансии»':''}, t)).join('')}</div>`;
+  } else if (branch === 'judicial'){
+    const topJudge = { ...STRUCTURE.judicial[0].people[0], eyebrow:'Верховный судья', sealImg:'assets/seal-chief-justice.png' };
+    const lower = STRUCTURE.judicial[0].people.slice(1).map((p,i)=>({ ...p, eyebrow:p.role, sealImg: i===0?'assets/seal-district.png':'assets/seal-appeals.png' }));
+    body = `
+    <div style="display:flex;flex-direction:column;gap:24px">
+      <div style="position:relative;background:${t.navyChip};border-radius:2px;overflow:hidden;padding:56px 40px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px">
+        <div style="position:absolute;inset:0;opacity:.12;background:radial-gradient(circle at 50% 0%,${t.gold},transparent 60%)"></div>
+        <img src="${topJudge.sealImg}" alt="" style="position:relative;width:120px;height:120px;object-fit:contain;filter:drop-shadow(0 8px 20px rgba(0,0,0,.35));margin-bottom:6px"/>
+        <span style="position:relative;font-size:11.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:${t.gold}">${esc(topJudge.eyebrow)}</span>
+        <h3 style="position:relative;font-family:'Source Serif 4',serif;font-weight:700;font-size:30px;margin:0;color:#f6f4ef">${esc(topJudge.name)}</h3>
+        <span style="position:relative;font-size:14.5px;color:#cdd6e5">${esc(topJudge.role)}</span>
+        <span style="position:relative;font-size:12px;color:#e6c85a;font-style:italic">${topJudge.vacant?'Идёт набор — см. вкладку «Вакансии»':''}</span>
+        <div style="position:relative;height:1px;width:80px;background:rgba(230,200,90,.35);margin:12px 0"></div>
+        <span style="position:relative;font-family:'Source Serif 4',serif;font-style:italic;color:#e6c85a;font-size:12.5px;letter-spacing:.6px">Justitia · Libertas · Unitas</span>
+      </div>
+      <div style="display:flex;gap:24px;flex-wrap:wrap">
+        ${lower.map(fp=>`
+        <div style="position:relative;background:${t.navyChip};border-radius:2px;overflow:hidden;padding:40px 32px;display:flex;flex-direction:column;align-items:center;text-align:center;gap:8px;flex:1;min-width:280px">
+          <div style="position:absolute;inset:0;opacity:.12;background:radial-gradient(circle at 50% 0%,${t.gold},transparent 60%)"></div>
+          <img src="${fp.sealImg}" alt="" style="position:relative;width:88px;height:88px;object-fit:contain;filter:drop-shadow(0 8px 20px rgba(0,0,0,.35));margin-bottom:4px"/>
+          <span style="position:relative;font-size:10.5px;font-weight:700;letter-spacing:1.3px;text-transform:uppercase;color:${t.gold}">${esc(fp.eyebrow)}</span>
+          <h3 style="position:relative;font-family:'Source Serif 4',serif;font-weight:700;font-size:22px;margin:0;color:#f6f4ef">${esc(fp.name)}</h3>
+          <span style="position:relative;font-size:13px;color:#cdd6e5">${esc(fp.role)}</span>
+          <span style="position:relative;font-size:11.5px;color:#e6c85a;font-style:italic">${fp.vacant?'Идёт набор':''}</span>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  }
+  return `
+  <section class="container" style="padding-top:56px;padding-bottom:80px">
+    <h1 style="font-family:'Source Serif 4',serif;font-size:30px;color:${t.text};margin:0 0 8px">Структура и состав</h1>
+    <p style="font-size:14px;color:${t.muted};margin:0 0 28px">Иерархия ведомств и действующий состав руководства</p>
+    <div style="display:flex;gap:4px;border-bottom:2px solid ${t.border};margin-bottom:32px">
+      ${BRANCH_TABS.map(([key,label])=>{
+        const active = branch===key;
+        return `<button onclick="setTab('structure','${key}')" style="background:none;border:none;cursor:pointer;padding:12px 18px;font:600 13px 'IBM Plex Sans',sans-serif;letter-spacing:.4px;text-transform:uppercase;color:${active?t.text:t.muted};border-bottom:3px solid ${active?t.gold:'transparent'};margin-bottom:-2px">${label}</button>`;
+      }).join('')}
+    </div>
+    ${body}
+  </section>`;
+}
+
+function documentsHtml(){
+  const t = theme();
+  const filtered = DOCUMENTS.filter(d => (state.docFilter==='all' || d.category===state.docFilter) && d.title.toLowerCase().includes(state.docSearch.toLowerCase()));
+  const openDoc_ = DOCUMENTS.find(d=>d.id===state.openDocId);
+  return `
+  <section class="container" style="padding-top:56px;padding-bottom:80px">
+    <h1 style="font-family:'Source Serif 4',serif;font-size:30px;color:${t.text};margin:0 0 8px">Нормативные документы</h1>
+    <p style="font-size:14px;color:${t.muted};margin:0 0 24px">Конституция, кодексы и указы штата Swag</p>
+    <div style="display:flex;gap:14px;margin-bottom:24px;flex-wrap:wrap;align-items:center">
+      <input id="doc-search" value="${esc(state.docSearch)}" oninput="state.docSearch=this.value;render()" placeholder="Поиск по названию документа…" style="flex:1;min-width:240px;padding:11px 14px;border:1px solid ${t.border};border-radius:2px;font-size:13.5px;font-family:'IBM Plex Sans',sans-serif;background:${t.cardBg};color:${t.text}"/>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${DOC_FILTERS.map(([key,label])=>{
+          const active = state.docFilter===key;
+          return `<button onclick="state.docFilter='${key}';render()" style="border:1px solid ${active?t.navyChip:t.border};background:${active?t.navyChip:t.cardBg};color:${active?t.gold:t.muted};padding:8px 13px;border-radius:2px;font-size:12.5px;font-weight:600;cursor:pointer">${label}</button>`;
+        }).join('')}
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:0;border-top:1px solid ${t.border}">
+      ${filtered.map(d=>`
+      <button onclick="openDoc(${JSON.stringify(d).replace(/"/g,'&quot;')})" style="background:none;border:none;text-align:left;font-family:inherit;display:flex;align-items:center;gap:18px;padding:18px 4px;border-bottom:1px solid ${t.border};cursor:pointer;width:100%">
+        <div style="width:38px;height:46px;flex:none;position:relative;background:${t.navyChip};border-radius:1px;border:1px solid ${t.gold};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:0 7px">
+          <span style="width:100%;height:1.4px;background:${t.gold};opacity:.9"></span>
+          <span style="width:70%;height:1.4px;background:${t.gold};opacity:.9;align-self:flex-start"></span>
+          <span style="width:85%;height:1.4px;background:${t.gold};opacity:.9;align-self:flex-start"></span>
+          <span style="width:55%;height:1.4px;background:${t.gold};opacity:.9;align-self:flex-start"></span>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:14.5px;font-weight:600;color:${t.text}">${esc(d.title)}</div>
+          <div style="font-size:12px;color:${t.muted};margin-top:3px">${esc(d.category)}</div>
+        </div>
+        <span style="font-size:12.5px;font-weight:600;color:${t.gold};white-space:nowrap">${d.file?'Читать →':'На форуме →'}</span>
+      </button>`).join('')}
+      ${filtered.length===0 ? `<div style="padding:32px 4px;color:${t.muted};font-size:13.5px;text-align:center">Документы не найдены</div>` : ''}
+    </div>
+    ${openDoc_ ? `
+    <div style="margin-top:32px;background:${t.cardBg};border:1px solid ${t.border};border-radius:2px">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 24px;border-bottom:1px solid ${t.border}">
+        <h3 style="font-family:'Source Serif 4',serif;font-size:18px;margin:0;color:${t.text}">${esc(state.openDocTitle)}</h3>
+        <button onclick="closeDoc()" style="background:none;border:1px solid ${t.border};color:${t.muted};padding:6px 12px;border-radius:2px;font-size:12px;cursor:pointer">Закрыть ✕</button>
+      </div>
+      <div style="max-height:600px;overflow:auto;padding:24px">
+        <pre style="white-space:pre-wrap;font-family:'IBM Plex Sans',sans-serif;font-size:13.5px;line-height:1.7;color:${t.text};margin:0">${esc(state.openDocText)}</pre>
+      </div>
+    </div>` : ''}
+  </section>`;
+}
+
+function newsHtml(){
+  const t = theme();
+  return `
+  <section class="container" style="padding-top:56px;padding-bottom:80px">
+    <h1 style="font-family:'Source Serif 4',serif;font-size:30px;color:${t.text};margin:0 0 8px">Новости и указы</h1>
+    <p style="font-size:14px;color:${t.muted};margin:0 0 28px">Пресс-релизы, указы губернатора и официальные заявления</p>
+    <div style="padding:60px 0;text-align:center;font-size:14.5px;color:${t.muted};font-style:italic;border-top:1px solid ${t.border}">Тут было перекати-поле… новости скоро появятся.</div>
+  </section>`;
+}
+
+function vacanciesHtml(){
+  const t = theme();
+  const items = (state.vacanciesData || []).map(v=>{
+    const isClosed = v.status==='closed';
+    return {
+      branch:v.branch, title:v.title, isClosed,
+      statusLabel: isClosed?'Закрыта':'Открыта',
+      statusBg: isClosed ? (t.bg==='#ffffff'?'#f1e4e4':'#3a2020') : (t.bg==='#ffffff'?'#e6f0e6':'#1c3626'),
+      statusColor: isClosed?'#b0453f':'#3f9a5a',
+      btnBg: isClosed?'transparent':t.gold,
+      btnColor: isClosed?t.muted:'#161c28',
+      btnBorder: isClosed?t.border:t.gold,
+      btnCursor: isClosed?'not-allowed':'pointer',
+      btnLabel: isClosed?'Набор закрыт':'Подать заявку →',
+      href: isClosed?'#':v.link,
+      target: isClosed?undefined:'_blank'
+    };
+  }).sort((a,b)=>Number(a.isClosed)-Number(b.isClosed));
+  const order = []; const byBranch = {};
+  items.forEach(v=>{ if(!byBranch[v.branch]){byBranch[v.branch]=[];order.push(v.branch);} byBranch[v.branch].push(v); });
+  const groups = order.map(branch=>({ branch, openCount: byBranch[branch].filter(v=>!v.isClosed).length, items: byBranch[branch] }));
+  const note = state.vacanciesData===null ? 'Загрузка данных…' : (state.vacanciesError ? 'Данные по умолчанию (не удалось загрузить обновления)' : 'Статус вакансий обновляется автоматически');
+  return `
+  <section class="container" style="padding-top:56px;padding-bottom:80px">
+    <h1 style="font-family:'Source Serif 4',serif;font-size:30px;color:${t.text};margin:0 0 8px">Вакансии и набор</h1>
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin:0 0 36px;flex-wrap:wrap;gap:8px">
+      <p style="font-size:14px;color:${t.muted};margin:0">Открытые позиции в структурах государственной власти</p>
+      <span style="font-size:11.5px;color:${t.muted}">${note}</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:36px">
+      ${groups.map(grp=>`
+      <div>
+        <div style="display:flex;align-items:baseline;justify-content:space-between;margin:0 0 14px;padding-bottom:8px;border-bottom:1px solid ${t.border}">
+          <h3 style="font-family:'Source Serif 4',serif;font-size:17px;color:${t.text};margin:0">${esc(grp.branch)}</h3>
+          <span style="font-size:11.5px;color:${t.muted}">${grp.openCount} открыто</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px">
+          ${grp.items.map(v=>`
+          <div style="background:${t.cardBg};border:1px solid ${t.border};border-left:3px solid ${v.statusColor};border-radius:2px;padding:20px 22px;display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;align-items:center;justify-content:flex-end">
+              <span style="font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;padding:3px 9px;border-radius:2px;background:${v.statusBg};color:${v.statusColor}">${v.statusLabel}</span>
+            </div>
+            <h4 style="font-family:'Source Serif 4',serif;font-size:16.5px;margin:0;color:${t.text};line-height:1.3">${esc(v.title)}</h4>
+            <a href="${v.href}" ${v.target?`target="${v.target}"`:''} style="background:${v.btnBg};color:${v.btnColor};border:1px solid ${v.btnBorder};padding:9px 14px;font-weight:700;font-size:12.5px;cursor:${v.btnCursor};border-radius:2px;align-self:flex-start;text-align:center;margin-top:auto;text-decoration:none">${v.btnLabel}</a>
+          </div>`).join('')}
+        </div>
+      </div>`).join('')}
+    </div>
+  </section>`;
+}
+
+function contactsHtml(){
+  const t = theme();
+  return `
+  <section class="container" style="max-width:720px;padding-top:56px;padding-bottom:80px">
+    <h1 style="font-family:'Source Serif 4',serif;font-size:30px;color:${t.text};margin:0 0 8px">Форма обращения</h1>
+    <p style="font-size:14px;color:${t.muted};line-height:1.6;margin:0 0 24px">Заполните форму — обращение будет направлено в приёмную соответствующего ведомства.</p>
+    <div style="background:${t.cardBg};border:1px solid ${t.border};border-radius:2px;padding:32px">
+      ${state.contactSent ? `<div style="padding:24px 0;text-align:center;font-size:15px;font-weight:600;color:${t.gold}">Обращение отправлено</div>` : `
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <label style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:${t.muted}">Ваше Имя и Фамилия (Имя Фамилия)
+          <input id="f-name" placeholder="Alex Johnson" style="padding:10px 12px;border:1px solid ${t.border};border-radius:2px;font-size:13.5px;background:${t.bg};color:${t.text}"/>
+        </label>
+        <label style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:${t.muted}">Ведомство
+          <select id="f-dept" style="padding:10px 12px;border:1px solid ${t.border};border-radius:2px;font-size:13.5px;background:${t.bg};color:${t.text}">
+            <option>Правительство</option>
+            <option>Прокуратура</option>
+            <option>Судейская коллегия</option>
+          </select>
+        </label>
+        <label style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:${t.muted}">Контакт (Discord/Telegram)
+          <input id="f-contact" placeholder="@username" style="padding:10px 12px;border:1px solid ${t.border};border-radius:2px;font-size:13.5px;background:${t.bg};color:${t.text}"/>
+        </label>
+        <label style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:${t.muted}">Тема обращения
+          <input id="f-subject" placeholder="Кратко опишите тему" style="padding:10px 12px;border:1px solid ${t.border};border-radius:2px;font-size:13.5px;background:${t.bg};color:${t.text}"/>
+        </label>
+        <label style="display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:600;color:${t.muted}">Сообщение
+          <textarea id="f-message" rows="4" placeholder="Изложите суть обращения" style="padding:10px 12px;border:1px solid ${t.border};border-radius:2px;font-size:13.5px;font-family:'IBM Plex Sans',sans-serif;resize:vertical;background:${t.bg};color:${t.text}"></textarea>
+        </label>
+        <input id="f-website" type="text" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0"/>
+        ${state.contactError ? `<div style="font-size:12.5px;color:#c0574f">${esc(state.contactError)}</div>` : ''}
+        <button onclick="submitContact()" ${state.contactSending?'disabled':''} style="background:${t.navyChip};color:#f6f4ef;border:none;padding:12px 18px;font-weight:700;font-size:14px;cursor:pointer;border-radius:2px;margin-top:4px">${state.contactSending?'Отправка…':'Отправить обращение'}</button>
+      </div>`}
+    </div>
+  </section>`;
+}
+
+function footerHtml(){
+  const columns = [
+    { title:'О штате', links:[
+      { label:'История штата', onClick:"setTab('home');setTimeout(()=>document.getElementById('history-section')?.scrollIntoView({behavior:'smooth'}),50)" },
+      { label:'Структура власти', onClick:"setTab('structure','gov')" }
+    ]},
+    { title:'Разделы', links:[
+      { label:'Документы', onClick:"setTab('documents')" },
+      { label:'Новости', onClick:"setTab('news')" },
+      { label:'Вакансии', onClick:"setTab('vacancies')" }
+    ]},
+    { title:'Ведомства', links:[
+      { label:'Правительство', onClick:"setTab('structure','gov')" },
+      { label:'Прокуратура', onClick:"setTab('structure','prosecutor')" },
+      { label:'Судейская коллегия', onClick:"setTab('structure','judicial')" }
+    ]},
+    { title:'Связь', links:[
+      { label:'Контакты', onClick:"setTab('contacts')" },
+      { label:'Подать обращение', onClick:"setTab('contacts')" }
+    ]}
+  ];
+  return `
+  <footer style="margin-top:auto;background:#0a1830;color:#aab4c4;border-top:1px solid rgba(255,255,255,.08)">
+    <div class="container" style="padding-top:52px;padding-bottom:32px;display:grid;grid-template-columns:repeat(4,1fr);gap:32px">
+      ${columns.map(col=>`
+      <div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#e6c85a;margin-bottom:14px">${col.title}</div>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          ${col.links.map(l=>`<a href="#" onclick="${l.onClick};return false;" style="font-size:13px;color:#cdd6e5">${l.label}</a>`).join('')}
+        </div>
+      </div>`).join('')}
+    </div>
+    <div class="container" style="padding-top:20px;padding-bottom:32px;border-top:1px solid rgba(255,255,255,.1);display:flex;align-items:center;gap:12px">
+      <img src="assets/seal.png" alt="" style="width:32px;height:32px;object-fit:contain"/>
+      <div style="font-size:12px;line-height:1.5;color:#9fb0c8">
+        <div style="font-weight:700;color:#f6f4ef">ШТАТ SWAG</div>
+        <div>© Основан в 1998 · Justitia · Libertas · Unitas</div>
+      </div>
+    </div>
+  </footer>`;
+}
+
+function render(){
+  const t = theme();
+  let content = '';
+  if (state.tab==='home') content = homeHtml();
+  else if (state.tab==='structure') content = structureHtml();
+  else if (state.tab==='documents') content = documentsHtml();
+  else if (state.tab==='news') content = newsHtml();
+  else if (state.tab==='vacancies') content = vacanciesHtml();
+  else if (state.tab==='contacts') content = contactsHtml();
+
+  document.getElementById('app').innerHTML = `
+  <div style="min-height:100vh;display:flex;flex-direction:column;background:${t.bg};color:${t.text};transition:background .25s,color .25s">
+    ${headerHtml()}
+    ${content}
+    ${footerHtml()}
+  </div>`;
+}
+
+loadVacancies();
+render();
+</script>
+</body>
+</html>
