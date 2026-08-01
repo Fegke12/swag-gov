@@ -36,6 +36,15 @@ const STRUCTURE = {
     { name:'Вакантно', role:'Верховный судья', initials:'SF' },
     { name:'Вакантно', role:'Окружной судья', initials:'—', vacant:true },
     { name:'Вакантно', role:'Апелляционный судья', initials:'—', vacant:true }
+  ]}],
+  other: [{ title:'Прочее', people:[
+    { name:'Вакантно', role:'Шериф РКШД', initials:'—', vacant:true },
+    { name:'Вакантно', role:'Шериф СФПД', initials:'—', vacant:true },
+    { name:'Вакантно', role:'Директор FBI', initials:'—', vacant:true },
+    { name:'Вакантно', role:'Куратор SWAT', initials:'—', vacant:true },
+    { name:'Вакантно', role:'Шеф ЛСПД', initials:'—', vacant:true },
+    { name:'Вакантно', role:'Генерал Армии Лос-Сантос', initials:'—', vacant:true },
+    { name:'Вакантно', role:'Главный врач LSMC', initials:'—', vacant:true }
   ]}]
 };
 
@@ -56,7 +65,7 @@ const DOCUMENTS = [
 ];
 
 const NAV = [['home','Главная'],['structure','Структура'],['documents','Документы'],['news','Новости'],['vacancies','Вакансии'],['contacts','Контакты']];
-const BRANCH_TABS = [['gov','Правительство'],['prosecutor','Прокуратура'],['judicial','Судейская коллегия']];
+const BRANCH_TABS = [['gov','Правительство'],['prosecutor','Прокуратура'],['judicial','Судейская коллегия'],['other','Прочее']];
 const DOC_FILTERS = [['all','Все'],['Конституция','Конституция'],['Кодексы','Кодексы'],['Федеральные законы','Фед. законы'],['Постановления','Постановления']];
 
 const state = {
@@ -257,6 +266,12 @@ function structureHtml(){
         </div>`).join('')}
       </div>
     </div>`;
+  } else if (branch === 'other'){
+    const people = STRUCTURE.other[0].people;
+    body = `
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px">
+      ${people.map(p => personCardHtml(p, t)).join('')}
+    </div>`;
   }
   return `
   <section class="container" style="padding-top:56px;padding-bottom:80px">
@@ -430,7 +445,8 @@ function footerHtml(){
     { title:'Ведомства', links:[
       { label:'Правительство', onClick:"setTab('structure','gov')" },
       { label:'Прокуратура', onClick:"setTab('structure','prosecutor')" },
-      { label:'Судейская коллегия', onClick:"setTab('structure','judicial')" }
+      { label:'Судейская коллегия', onClick:"setTab('structure','judicial')" },
+      { label:'Прочее', onClick:"setTab('structure','other')" }
     ]},
     { title:'Связь', links:[
       { label:'Контакты', onClick:"setTab('contacts')" },
