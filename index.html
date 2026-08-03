@@ -39,7 +39,21 @@ const STRUCTURE = {
   ]}]
 };
 
-const DOCUMENTS = [
+const NEWS = [
+  {
+    date:'03.08.2026',
+    category:'Назначение',
+    title:'Поздравляем с назначением Генерального прокурора',
+    body:'Правительство штата SWAG поздравляет Noim Nurzhanov с назначением на должность Генерального прокурора штата. Желаем твёрдости в отстаивании закона, справедливых решений и успехов в служении жителям штата.'
+  },
+  {
+    date:'03.08.2026',
+    category:'Назначение',
+    title:'Поздравляем с назначением Губернатора штата',
+    body:'Правительство штата SWAG поздравляет Leonid Harley с вступлением в должность Губернатора штата. Желаем мудрых решений, крепкой руки в управлении и процветания штату под Вашим руководством.'
+  }
+];
+ const DOCUMENTS = [
   { title:'Конституция штата SWAG', category:'Конституция', id:'constitution', file:'data/constitution.txt' },
   { title:'Уголовный кодекс', category:'Кодексы', id:'criminal', file:'data/code-criminal.txt' },
   { title:'Дорожный кодекс штата', category:'Кодексы', id:'road', file:'data/code-road.txt' },
@@ -179,7 +193,16 @@ function homeHtml(){
         <h2 style="font-family:\'Source Serif 4\',serif;font-size:22px;margin:0;color:'+t.text+'">Последние новости и указы</h2>\
         <button onclick="setTab(\'news\')" style="background:none;border:none;cursor:pointer;font-size:12px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:'+t.gold+'">Все новости →</button>\
       </div>\
-      <div style="border-top:1px solid '+t.border+';padding:36px 0;text-align:center;font-size:13.5px;color:'+t.muted+';font-style:italic">Тут было перекати-поле… новости скоро появятся.</div>\
+      <div style="border-top:1px solid '+t.border+';display:flex;flex-direction:column">\
+        '+NEWS.slice(0,2).map(function(n){ return '<div style="padding:20px 0;border-bottom:1px solid '+t.border+'">\
+          <div style="display:flex;gap:10px;align-items:center;margin-bottom:6px">\
+            <span style="font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:'+t.gold+'">'+esc(n.category)+'</span>\
+            <span style="font-size:11.5px;color:'+t.muted+'">'+esc(n.date)+'</span>\
+          </div>\
+          <h3 style="font-family:\'Source Serif 4\',serif;font-size:17px;margin:0 0 6px;color:'+t.text+'">'+esc(n.title)+'</h3>\
+          <p style="font-size:13.5px;color:'+t.muted+';line-height:1.6;margin:0">'+esc(n.body)+'</p>\
+        </div>'; }).join('')+'\
+      </div>\
     </div>\
     <div style="background:'+t.navyChip+';border-radius:2px;padding:26px 24px;color:#f6f4ef;display:flex;flex-direction:column;gap:14px;align-self:start">\
       <h3 style="font-family:\'Source Serif 4\',serif;font-size:17px;margin:0;color:#e6c85a">Подать обращение</h3>\
@@ -305,7 +328,16 @@ function newsHtml(){
   return '<section class="container" style="padding-top:56px;padding-bottom:80px">\
     <h1 style="font-family:\'Source Serif 4\',serif;font-size:30px;color:'+t.text+';margin:0 0 8px">Новости и указы</h1>\
     <p style="font-size:14px;color:'+t.muted+';margin:0 0 28px">Пресс-релизы, указы губернатора и официальные заявления</p>\
-    <div style="padding:60px 0;text-align:center;font-size:14.5px;color:'+t.muted+';font-style:italic;border-top:1px solid '+t.border+'">Тут было перекати-поле… новости скоро появятся.</div>\
+    <div style="border-top:1px solid '+t.border+';display:flex;flex-direction:column">\
+      '+NEWS.map(function(n){ return '<article style="padding:28px 0;border-bottom:1px solid '+t.border+'">\
+        <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px">\
+          <span style="font-size:10.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:'+t.gold+'">'+esc(n.category)+'</span>\
+          <span style="font-size:12px;color:'+t.muted+'">'+esc(n.date)+'</span>\
+        </div>\
+        <h2 style="font-family:\'Source Serif 4\',serif;font-size:22px;margin:0 0 10px;color:'+t.text+'">'+esc(n.title)+'</h2>\
+        <p style="font-size:14px;color:'+t.muted+';line-height:1.7;margin:0">'+esc(n.body)+'</p>\
+      </article>'; }).join('')+'\
+    </div>\
   </section>';
 }
 
